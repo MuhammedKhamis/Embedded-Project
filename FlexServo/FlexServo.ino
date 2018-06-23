@@ -1,7 +1,17 @@
 #include <Servo.h>
+
+//Servo Part
 Servo servo;
 const int servoPin = 6; //digital pin
+
+//Flex Sensor Part
 const int flexPin = A0; //analog pin
+
+//Flex Sensor Parameters
+int min_value = 2000;
+int max_value = 0;
+
+const int sampling_rate = 200;
 
 void setup() {
   // servo config
@@ -16,12 +26,33 @@ void setup() {
 
 void loop() {
   //Read and save analog value from potentiometer  
-  int value = analogRead(flexPin);
-  Serial.println(value);
-  // check the lease and greatest value for flex sensor
-  value = map(value, 700, 900, 0, 360);//Map value 0-1023 to 0-360 (degrees)
-  //use the maapped value for the servo
-  Serial.print("angle = "); Serial.println(value);
-  servo.write(value);
+  long value = movingAverageFilter();
+  Serial.println("Average Sensor Value = " + String(value));
+
+  // check the least and greatest value for flex sensor.
+  min_value = min(min_value, value);
+  max_value = max(max_value, value);
+  Serial.println("Min Sensor Value = " + String(min_value));
+  Serial.println("Max Sensor Value = " + String(max_value));
+  
+  // we find that minValue = 480 and maxValue = 650
+  // then map the flex value to degree for the servo motor.
+  int degree = map(value, 450, 680, 0, 180);
+  
+  //use the mapped value for the servo
+  Serial.println("angle" + String(degree));
+  servo.write(degree);
+  
+  // for stabilization make delay.
   delay(20);
 }
+
+long movingAverageFilter(){
+  long value = 0;
+  for(int sample = 1; sample <= sampling_rate; sample++){
+    value += analogRead(flexPin);
+  }
+  value = value / sampling_rate;
+  return value;
+}
+
